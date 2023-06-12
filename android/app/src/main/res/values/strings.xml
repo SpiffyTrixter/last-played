@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Last Played</string>
+    <string name="title_activity_main">Last Played</string>
+    <string name="package_name">dev.cimma.lastplayed</string>
+    <string name="custom_url_scheme">dev.cimma.lastplayed</string>
+</resources>
