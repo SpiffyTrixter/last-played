@@ -1,40 +1,46 @@
-import { PUBLIC_SPOTIFY_CLIENT_ID, PUBLIC_SPOTIFY_CLIENT_SECRET, PUBLIC_SPOTIFY_REDIRECT_URI } from '$env/static/public'
+import {
+	PUBLIC_SPOTIFY_CLIENT_ID,
+	PUBLIC_SPOTIFY_CLIENT_SECRET,
+	PUBLIC_SPOTIFY_REDIRECT_URI
+} from '$env/static/public';
+import { accessToken, refreshToken } from '$lib/stores';
+import { error, redirect } from '@sveltejs/kit';
 
 export const Spotify = {
-    token: null,
+	login() {
+		const url = new URL('https://accounts.spotify.com/authorize');
+		url.searchParams.append('client_id', PUBLIC_SPOTIFY_CLIENT_ID);
+		url.searchParams.append('response_type', 'code');
+		url.searchParams.append('redirect_uri', PUBLIC_SPOTIFY_REDIRECT_URI);
 
-    async getAccessToken() {
-        const code = new URL(window.location.href).searchParams.get('code');
-        const authorization = btoa(`${PUBLIC_SPOTIFY_CLIENT_ID}:${PUBLIC_SPOTIFY_CLIENT_SECRET}`)
+		// window.location.href = decodeURIComponent(url.toString());
 
-        if (code === null) {
-            return null
-        }
+		throw redirect(307, decodeURIComponent(url.toString()));
+	},
 
-        const authenticationCode = await fetch('https://accounts.spotify.com/api/token', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Basic ${authorization}`,
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-                grant_type: 'authorization_code',
-                code: code.toString(),
-                redirect_uri: PUBLIC_SPOTIFY_REDIRECT_URI,
-            }),
-        })
+	async setTokens(code: string) {
+		const authorization = btoa(`${PUBLIC_SPOTIFY_CLIENT_ID}:${PUBLIC_SPOTIFY_CLIENT_SECRET}`);
 
-        const { access_token } = await authenticationCode.json()
+		const authenticationCode = await fetch('https://accounts.spotify.com/api/token', {
+			method: 'POST',
+			headers: {
+				Authorization: `Basic ${authorization}`,
+				'Content-Type': 'application/x-www-form-urlencoded'
+			},
+			body: new URLSearchParams({
+				grant_type: 'authorization_code',
+				code: code,
+				redirect_uri: PUBLIC_SPOTIFY_REDIRECT_URI
+			})
+		});
 
-        return access_token
-    },
+		const response = await authenticationCode.json();
 
-    login() {
-        const url = new URL('https://accounts.spotify.com/authorize')
-        url.searchParams.append('client_id', PUBLIC_SPOTIFY_CLIENT_ID)
-        url.searchParams.append('response_type', 'code')
-        url.searchParams.append('redirect_uri', PUBLIC_SPOTIFY_REDIRECT_URI)
+		if (!authenticationCode.ok) {
+			throw error(authenticationCode.status, response.error_description);
+		}
 
-        window.location.href = decodeURIComponent(url.toString());
-    }
-}
+		accessToken.set(response.access_token);
+		refreshToken.set(response.refresh_token);
+	}
+};
