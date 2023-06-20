@@ -1,7 +1,15 @@
 <script lang="ts">
-  import { accessToken } from "$lib/stores";
+  import PageData = App.PageData;
+
+  export let data: PageData<{
+    accessToken: string
+    lastPlayedSongs: JSON
+  }>;
+
 </script>
 
 <div>
-  Authenticated as {$accessToken}
+  Authenticated as {data.accessToken}
+  <br/>
+  Last played songs: {data.lastPlayedSongs.next}
 </div>
