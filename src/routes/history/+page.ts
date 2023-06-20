@@ -15,8 +15,6 @@ export async function load() {
 		throw redirect(302, '/');
 	}
 
-	console.log(lastPlayedSongs);
-
 	return {
 		accessToken,
 		lastPlayedSongs
