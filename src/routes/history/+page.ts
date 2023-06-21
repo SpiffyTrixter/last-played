@@ -1,13 +1,13 @@
 import { redirect } from '@sveltejs/kit';
 import { getLastPlayedSongs } from '$lib/spotify';
-import { AccessToken } from '$lib/storage';
+import { cookieExists, getCookie } from '$lib/cookie';
 
 export async function load() {
-	if (!AccessToken.exists()) {
+	if (!cookieExists('access_token')) {
 		throw redirect(302, '/');
 	}
 
-	const accessToken = AccessToken.get();
+	const accessToken = getCookie('access_token');
 	const lastPlayedSongs = await getLastPlayedSongs(accessToken);
 
 	if (lastPlayedSongs.error) {

@@ -1,7 +1,7 @@
 import { getTokenResponse } from '$lib/spotify';
 import { error, redirect } from '@sveltejs/kit';
 import type { PageLoadEvent } from './$types';
-import { AccessToken, RefreshToken } from '$lib/storage';
+import { setCookie } from '$lib/cookie';
 
 export async function load(event: PageLoadEvent) {
 	const code = event.url.searchParams.get('code') || null;
@@ -14,8 +14,8 @@ export async function load(event: PageLoadEvent) {
 		}
 
 		if (response.access_token && response.refresh_token) {
-			AccessToken.set(response.access_token);
-			RefreshToken.set(response.refresh_token);
+			setCookie('access_token', response.access_token, response.expires_in);
+			sessionStorage.setItem('refresh_token', response.refresh_token);
 
 			throw redirect(302, '/history');
 		}
