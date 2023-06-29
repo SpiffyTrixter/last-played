@@ -8,6 +8,8 @@
   const accessToken = getCookie('access_token');
 
   let limit = 50;
+  // unix timestamp in milliseconds
+  let before = new Date().getTime();
   let playlistName = 'Last Played ' + new Date().toLocaleDateString('de-CH') + ' ' + new Date().toLocaleTimeString('de-CH');
   let playlistDescription = '';
   let selectedSongs = getCookie('selected_songs')?.split(',') || [];
@@ -53,9 +55,10 @@
   <button on:click={() => goto('/logout')}>Logout</button>
   <h1>Last Played</h1>
   <div>
-    {#await getLastPlayedSongs(accessToken, limit)}
+    {#await getLastPlayedSongs(accessToken, limit, null, before)}
       <p>loading...</p>
     {:then songs}
+      {songs.items.length}
       {#each songs.items as song}
         <div id="{song.track.uri}" class:selected={selectedSongs.includes(song.track.uri)}>
           {song.track.name} - {song.track.artists[0].name} - {song.played_at} <button on:click={() => selectSong(song)}>Select</button>
