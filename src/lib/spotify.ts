@@ -8,8 +8,12 @@ import sha256 from 'crypto-js/sha256';
 import Base64 from 'crypto-js/enc-base64';
 
 export async function getTokenResponse(code: string) {
-	const codeVerifier = sessionStorage.getItem('code_verifier') || '';
+	const codeVerifier = localStorage.getItem('code_verifier') || '';
 	const authorization = btoa(`${PUBLIC_SPOTIFY_CLIENT_ID}:${PUBLIC_SPOTIFY_CLIENT_SECRET}`);
+
+	if (!codeVerifier) throw new Error('No code verifier found');
+	console.log('getTokenResponse:');
+	console.log(codeVerifier);
 
 	const authenticationCode = await fetch('https://accounts.spotify.com/api/token', {
 		method: 'POST',
@@ -38,7 +42,9 @@ export function getAuthorizationUrl() {
 		.replace(/\//g, '_')
 		.replace(/=+$/, '');
 
-	sessionStorage.setItem('code_verifier', codeVerifier);
+	console.log('getAuthorizationUrl:');
+	localStorage.setItem('code_verifier', codeVerifier);
+	console.log(localStorage.getItem('code_verifier'));
 
 	url.searchParams.append('client_id', PUBLIC_SPOTIFY_CLIENT_ID);
 	url.searchParams.append('response_type', 'code');
@@ -54,14 +60,14 @@ export function getAuthorizationUrl() {
 export async function getLastPlayedSongs(
 	accessToken: string,
 	limit = 50,
-	after?: string,
-	before?: string
+	after?: number,
+	before?: number
 ) {
 	const url = new URL('https://api.spotify.com/v1/me/player/recently-played');
 	url.searchParams.append('limit', limit.toString());
 
-	if (after) url.searchParams.append('after', after);
-	if (before) url.searchParams.append('before', before);
+	if (after) url.searchParams.append('after', after.toString());
+	if (before) url.searchParams.append('before', before.toString());
 
 	const response = await fetch(url, {
 		headers: {
@@ -72,13 +78,27 @@ export async function getLastPlayedSongs(
 	return await response.json();
 }
 
-export function createPlaylist(
+export async function getUserProfile(accessToken: string) {
+	const url = new URL('https://api.spotify.com/v1/me');
+
+	const response = await fetch(url, {
+		headers: {
+			Authorization: `Bearer ${accessToken}`
+		}
+	});
+
+	return await response.json();
+}
+
+export async function createPlaylist(
 	accessToken: string,
 	userId: string,
 	name: string,
 	description?: string
 ) {
-	return fetch(`https://api.spotify.com/v1/users/${userId}/playlists`, {
+	const url = new URL(`https://api.spotify.com/v1/users/${userId}/playlists`);
+
+	const response = await fetch(url, {
 		method: 'POST',
 		headers: {
 			Authorization: `Bearer ${accessToken}`,
@@ -89,12 +109,16 @@ export function createPlaylist(
 			description: description
 		})
 	});
+
+	return await response.json();
 }
 
-export function addTracksToPlaylist(accessToken: string, playlistId: string, uris: string[]) {
+export async function addTracksToPlaylist(accessToken: string, playlistId: string, uris: string[]) {
 	if (uris.length > 100) throw new Error('Too many tracks to add to playlist');
 
-	return fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
+	const url = new URL(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`);
+
+	const response = await fetch(url, {
 		method: 'POST',
 		headers: {
 			Authorization: `Bearer ${accessToken}`,
@@ -104,6 +128,8 @@ export function addTracksToPlaylist(accessToken: string, playlistId: string, uri
 			uris: uris
 		})
 	});
+
+	return await response.json();
 }
 
 function generateRandomString(length: number) {

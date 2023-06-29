@@ -9,7 +9,7 @@ export function getCookie(name: string) {
 		?.split('=')[1];
 
 	if (!cookie) {
-		throw new Error(`Cookie ${name} not found`);
+		return null;
 	}
 
 	return cookie;

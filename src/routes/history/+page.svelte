@@ -1,55 +1,80 @@
 <script lang="ts">
-  import PageData = App.PageData;
-  import type { LastPlayedSongs } from "../../types/LastPlayedSongs";
-  import { getLastPlayedSongs } from "$lib/spotify";
-  import DateInput from "$lib/components/DateInput.svelte";
+  import { addTracksToPlaylist, createPlaylist, getLastPlayedSongs, getUserProfile } from "$lib/spotify";
+  import { cookieExists, getCookie, setCookie } from "$lib/cookie";
+  import { goto } from "$app/navigation";
 
-  export let data: PageData<{
-    accessToken: string
-    lastPlayedSongs: LastPlayedSongs
-  }>;
+  checkLogin();
 
-  let {
-    after,
-    before
-  } = data.lastPlayedSongs.cursors;
-  let lastPlayedSongs = data.lastPlayedSongs;
+  const accessToken = getCookie('access_token');
 
-  let afterDate = new Date(parseInt(after));
-  let beforeDate = new Date(parseInt(before));
   let limit = 50;
+  let playlistName = 'Last Played ' + new Date().toLocaleDateString('de-CH') + ' ' + new Date().toLocaleTimeString('de-CH');
+  let playlistDescription = '';
+  let selectedSongs = getCookie('selected_songs')?.split(',') || [];
 
-  $: if (afterDate || beforeDate || limit) {
-    after = afterDate.getTime().toString();
-    before = beforeDate.getTime().toString();
+  function selectSong(song) {
+    if (selectedSongs.includes(song.track.uri)) {
+      selectedSongs = selectedSongs.filter((uri) => uri !== song.track.uri);
+      document.getElementById(song.track.uri).classList.remove('selected');
+    } else {
+      selectedSongs.push(song.track.uri);
+      document.getElementById(song.track.uri).classList.add('selected');
+    }
 
-    getLastPlayedSongs(
-      data.accessToken,
-      limit,
-      after,
-    ).then((songs) => {
-      lastPlayedSongs = songs;
-    }).catch((err) => {
-      console.error(err);
-    })
+    setCookie('selected_songs', selectedSongs.join(','), 86400);
   }
 
+  async function playlist() {
+    checkLogin();
+
+    const total = selectedSongs.length;
+    const user = await getUserProfile(accessToken);
+    const playlist = await createPlaylist(accessToken, user.id, playlistName, playlistDescription);
+
+    let offset = 0;
+    while(offset < total) {
+      const songs = selectedSongs.slice(offset, offset + 100);
+      await addTracksToPlaylist(accessToken, playlist.id, songs)
+      offset += 100;
+    }
+
+    alert('Playlist created');
+    setCookie('selected_songs', '', 0);
+  }
+
+  function checkLogin() {
+    if (!cookieExists('access_token')) {
+      goto('/login')
+    }
+  }
 </script>
 
 <div>
-  <div id="filter-container">
-    After:
-    <DateInput id="after" bind:date={afterDate} />
-    Before:
-    <DateInput id="before" bind:date={beforeDate} />
-    Limit:
-    <input type="number" id="limit" max="50" bind:value={limit}>
+  <button on:click={() => goto('/logout')}>Logout</button>
+  <h1>Last Played</h1>
+  <div>
+    {#await getLastPlayedSongs(accessToken, limit)}
+      <p>loading...</p>
+    {:then songs}
+      {#each songs.items as song}
+        <div id="{song.track.uri}" class:selected={selectedSongs.includes(song.track.uri)}>
+          {song.track.name} - {song.track.artists[0].name} - {song.played_at} <button on:click={() => selectSong(song)}>Select</button>
+        </div>
+      {/each}
+    {:catch error}
+      <p>{error.message}</p>
+    {/await}
   </div>
   <div>
-    {#each lastPlayedSongs.items as song}
-      <div>
-        {song.track.name} - {song.track.artists[0].name} - {song.played_at}
-      </div>
-    {/each}
+    <h2>Create Playlist</h2>
+    <input bind:value={playlistName} />
+    <input bind:value={playlistDescription} />
+    <button on:click={playlist} >Save</button>
   </div>
 </div>
+
+<style>
+  .selected {
+    background-color: green;
+  }
+</style>
