@@ -1,8 +1,8 @@
 import { redirect } from '@sveltejs/kit';
-import { cookieExists } from '$lib/cookie';
+import Cookies from 'js-cookie';
 
 export async function load() {
-	if (cookieExists('access_token')) {
+	if (Cookies.get('access_token')) {
 		throw redirect(302, '/history');
 	} else {
 		throw redirect(302, '/login');

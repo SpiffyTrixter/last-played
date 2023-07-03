@@ -1,53 +1,84 @@
 <script lang="ts">
-  import { addTracksToPlaylist, createPlaylist, getLastPlayedSongs, getUserProfile } from "$lib/spotify";
-  import { cookieExists, getCookie, setCookie } from "$lib/cookie";
+  import { generatePlaylist, getLastPlayedSongs, } from "$lib/spotify";
   import { goto } from "$app/navigation";
+  import { deselectSong, toggleAllSongs } from "$lib/song";
+  import { selectedSongs } from "$lib/stores";
+  import Swal from 'sweetalert2';
+  import Cookies from 'js-cookie';
+  import Song from "$lib/components/Song.svelte";
+  import type { Song as SongInterface } from "../../types/Song";
 
-  checkLogin();
+  const accessToken = Cookies.get('access_token');
 
-  const accessToken = getCookie('access_token');
+  if (!accessToken) {
+    goto('/')
+  }
 
   let limit = 50;
-  // unix timestamp in milliseconds
+  let selected: SongInterface[] = [];
   let before = new Date().getTime();
   let playlistName = 'Last Played ' + new Date().toLocaleDateString('de-CH') + ' ' + new Date().toLocaleTimeString('de-CH');
   let playlistDescription = '';
-  let selectedSongs = getCookie('selected_songs')?.split(',') || [];
 
-  function selectSong(song) {
-    if (selectedSongs.includes(song.track.uri)) {
-      selectedSongs = selectedSongs.filter((uri) => uri !== song.track.uri);
-      document.getElementById(song.track.uri).classList.remove('selected');
-    } else {
-      selectedSongs.push(song.track.uri);
-      document.getElementById(song.track.uri).classList.add('selected');
-    }
-
-    setCookie('selected_songs', selectedSongs.join(','), 86400);
-  }
+  selectedSongs.set(JSON.parse(Cookies.get('selected_songs') || '[]'));
+  selectedSongs.subscribe((songs) => {
+    selected = songs;
+    Cookies.set('selected_songs', JSON.stringify(songs), { expires: 86400 });
+  });
 
   async function playlist() {
-    checkLogin();
+    if (!Cookies.get('access_token') || !accessToken) {
+      await goto('/')
+    } else {
+      const { value: values } = await Swal.fire({
+        template: '#swal-createPlaylist-template',
+        preConfirm: () => {
+          return [
+            document.getElementById('swal-playlistName').value,
+            document.getElementById('swal-playlistDescription').value
+          ]
+        },
+        didOpen: () => {
+          document.getElementById('swal-playlistName').value = playlistName
+        }
+      })
 
-    const total = selectedSongs.length;
-    const user = await getUserProfile(accessToken);
-    const playlist = await createPlaylist(accessToken, user.id, playlistName, playlistDescription);
+      if (!values) return;
 
-    let offset = 0;
-    while(offset < total) {
-      const songs = selectedSongs.slice(offset, offset + 100);
-      await addTracksToPlaylist(accessToken, playlist.id, songs)
-      offset += 100;
+      const [name, description] = values;
+
+      if (!name) {
+        Swal.fire({
+          title: 'Name is required!',
+          icon: 'error'
+        })
+        return;
+      }
+
+      generatePlaylist(accessToken, name, description, selected).then(() => {
+        Swal.fire({
+          title: "Playlist created!",
+          icon: "success"
+        });
+        Cookies.remove("selected_songs");
+      }).catch((e) => {
+        Swal.fire({
+          title: e.message || 'Something went wrong!',
+          icon: 'error'
+        })
+      })
     }
-
-    alert('Playlist created');
-    setCookie('selected_songs', '', 0);
   }
 
-  function checkLogin() {
-    if (!cookieExists('access_token')) {
-      goto('/login')
-    }
+  function convertToSong(lastPlayedSong): SongInterface {
+    return {
+      id: lastPlayedSong.track.uri,
+      title: lastPlayedSong.track.name,
+      artists: lastPlayedSong.track.artists.map((artist) => artist.name),
+      preview_url: lastPlayedSong.track.preview_url,
+      played_at: lastPlayedSong.played_at,
+      selected: selected.includes(lastPlayedSong.track.id)
+    };
   }
 </script>
 
@@ -57,12 +88,10 @@
   <div>
     {#await getLastPlayedSongs(accessToken, limit, null, before)}
       <p>loading...</p>
-    {:then songs}
-      {songs.items.length}
-      {#each songs.items as song}
-        <div id="{song.track.uri}" class:selected={selectedSongs.includes(song.track.uri)}>
-          {song.track.name} - {song.track.artists[0].name} - {song.played_at} <button on:click={() => selectSong(song)}>Select</button>
-        </div>
+    {:then lastPlayedSongs}
+      {lastPlayedSongs.items.length} - <button on:click={toggleAllSongs}>Select All</button>
+      {#each lastPlayedSongs.items as lastPlayedSong}
+        <Song song={convertToSong(lastPlayedSong)} />
       {/each}
     {:catch error}
       <p>{error.message}</p>
@@ -76,8 +105,31 @@
   </div>
 </div>
 
-<style>
-  .selected {
-    background-color: green;
-  }
-</style>
+<template id="swal-createPlaylist-template">
+  <swal-title>
+    Create Playlist
+  </swal-title>
+  <swal-html>
+    <input id="swal-playlistName" class="swal2-input" placeholder="Name">
+    <textarea id="swal-playlistDescription" class="swal2-textarea" placeholder="Description"></textarea>
+    <h2>Selected</h2>
+    {#if selected.length === 0}
+      <p>No songs selected</p>
+    {:else}
+      <div style="text-align: left">
+        {#each $selectedSongs as song}
+          <div style="display: flex; justify-content: space-between">
+            <span>{song.title}</span>
+            <button class="preview" data-song-id="{song.id}">x</button>
+          </div>
+        {/each}
+      </div>
+    {/if}
+  </swal-html>
+  <swal-button type="confirm">
+    Confirm
+  </swal-button>
+  <swal-button type="cancel">
+    Cancel
+  </swal-button>
+</template>

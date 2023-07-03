@@ -36,8 +36,11 @@
 		"@capacitor/core": "^5.0.5",
 		"@capacitor/geolocation": "^5.0.4",
 		"@capacitor/ios": "^5.0.5",
+		"@types/js-cookie": "^3.0.3",
 		"crypto-js": "^4.1.1",
 		"dayjs": "^1.11.8",
-		"svelty-picker": "^3.5.2"
+		"js-cookie": "^3.0.5",
+		"svelty-picker": "^3.5.2",
+		"sweetalert2": "^11.7.12"
 	}
 }

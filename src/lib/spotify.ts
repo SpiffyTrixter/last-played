@@ -6,16 +6,15 @@ import {
 } from '$env/static/public';
 import sha256 from 'crypto-js/sha256';
 import Base64 from 'crypto-js/enc-base64';
+import type { Song } from '../types/Song';
 
 export async function getTokenResponse(code: string) {
 	const codeVerifier = localStorage.getItem('code_verifier') || '';
 	const authorization = btoa(`${PUBLIC_SPOTIFY_CLIENT_ID}:${PUBLIC_SPOTIFY_CLIENT_SECRET}`);
 
 	if (!codeVerifier) throw new Error('No code verifier found');
-	console.log('getTokenResponse:');
-	console.log(codeVerifier);
 
-	const authenticationCode = await fetch('https://accounts.spotify.com/api/token', {
+	const response = await fetch('https://accounts.spotify.com/api/token', {
 		method: 'POST',
 		headers: {
 			Authorization: `Basic ${authorization}`,
@@ -30,7 +29,11 @@ export async function getTokenResponse(code: string) {
 		})
 	});
 
-	return await authenticationCode.json();
+	const json = await response.json();
+
+	if (json.error) throw new Error(json.error.message);
+
+	return json;
 }
 
 export function getAuthorizationUrl() {
@@ -42,9 +45,7 @@ export function getAuthorizationUrl() {
 		.replace(/\//g, '_')
 		.replace(/=+$/, '');
 
-	console.log('getAuthorizationUrl:');
 	localStorage.setItem('code_verifier', codeVerifier);
-	console.log(localStorage.getItem('code_verifier'));
 
 	url.searchParams.append('client_id', PUBLIC_SPOTIFY_CLIENT_ID);
 	url.searchParams.append('response_type', 'code');
@@ -75,7 +76,11 @@ export async function getLastPlayedSongs(
 		}
 	});
 
-	return await response.json();
+	const json = await response.json();
+
+	if (json.error) throw new Error(json.error.message);
+
+	return json;
 }
 
 export async function getUserProfile(accessToken: string) {
@@ -87,7 +92,11 @@ export async function getUserProfile(accessToken: string) {
 		}
 	});
 
-	return await response.json();
+	const json = await response.json();
+
+	if (json.error) throw new Error(json.error.message);
+
+	return json;
 }
 
 export async function createPlaylist(
@@ -110,7 +119,11 @@ export async function createPlaylist(
 		})
 	});
 
-	return await response.json();
+	const json = await response.json();
+
+	if (json.error) throw new Error(json.error.message);
+
+	return json;
 }
 
 export async function addTracksToPlaylist(accessToken: string, playlistId: string, uris: string[]) {
@@ -129,7 +142,30 @@ export async function addTracksToPlaylist(accessToken: string, playlistId: strin
 		})
 	});
 
-	return await response.json();
+	const json = await response.json();
+
+	if (json.error) throw new Error(json.error.message);
+
+	return json;
+}
+
+export async function generatePlaylist(
+	accessToken: string,
+	name: string,
+	description?: string,
+	songs?: Song[]
+) {
+	const user = await getUserProfile(accessToken);
+	const playlist = await createPlaylist(accessToken, user.id, name, description);
+
+	if (songs) {
+		let offset = 0;
+		while (offset < songs.length) {
+			const uris = songs.slice(offset, offset + 100).map((song) => song.id);
+			await addTracksToPlaylist(accessToken, playlist.id, uris);
+			offset += 100;
+		}
+	}
 }
 
 function generateRandomString(length: number) {
