@@ -75,6 +75,7 @@
       id: lastPlayedSong.track.uri,
       title: lastPlayedSong.track.name,
       artists: lastPlayedSong.track.artists.map((artist) => artist.name),
+      image_url: lastPlayedSong.track.album.images[0].url,
       preview_url: lastPlayedSong.track.preview_url,
       played_at: lastPlayedSong.played_at,
       selected: selected.includes(lastPlayedSong.track.id)
@@ -84,15 +85,19 @@
 
 <div>
   <button on:click={() => goto('/logout')}>Logout</button>
-  <h1>Last Played</h1>
+  <h1 class="mb-4 text-4xl font-extrabold leading-none tracking-tight text-gray-900 md:text-5xl lg:text-6xl">
+    Last Played
+  </h1>
   <div>
     {#await getLastPlayedSongs(accessToken, limit, null, before)}
       <p>loading...</p>
     {:then lastPlayedSongs}
       {lastPlayedSongs.items.length} - <button on:click={toggleAllSongs}>Select All</button>
-      {#each lastPlayedSongs.items as lastPlayedSong}
-        <Song song={convertToSong(lastPlayedSong)} />
-      {/each}
+      <ul class="divide-y divide-gray-100">
+        {#each lastPlayedSongs.items as lastPlayedSong}
+          <Song song={convertToSong(lastPlayedSong)} />
+        {/each}
+      </ul>
     {:catch error}
       <p>{error.message}</p>
     {/await}
@@ -110,18 +115,15 @@
     Create Playlist
   </swal-title>
   <swal-html>
-    <input id="swal-playlistName" class="swal2-input" placeholder="Name">
-    <textarea id="swal-playlistDescription" class="swal2-textarea" placeholder="Description"></textarea>
+    <input style="width: 20rem" id="swal-playlistName" class="swal2-input" placeholder="Name">
+    <textarea style="width: 20rem" id="swal-playlistDescription" class="swal2-textarea" placeholder="Description"></textarea>
     <h2>Selected</h2>
     {#if selected.length === 0}
       <p>No songs selected</p>
     {:else}
       <div style="text-align: left">
         {#each $selectedSongs as song}
-          <div style="display: flex; justify-content: space-between">
-            <span>{song.title}</span>
-            <button class="preview" data-song-id="{song.id}">x</button>
-          </div>
+          <span>{song.title}</span><br>
         {/each}
       </div>
     {/if}

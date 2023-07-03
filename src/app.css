@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+#page {
+    width: 50%;
+    margin: 0 auto;
+}

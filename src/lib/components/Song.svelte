@@ -8,6 +8,13 @@
   export let song: Song;
 
   let selected;
+  let playedAt = new Date(song.played_at);
+  let playedAtString = playedAt.toLocaleDateString("de-CH", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+  });
 
   onMount(() => {
     addSong(song);
@@ -18,17 +25,21 @@
   });
 </script>
 
-
-<div class="song" id="{song.id}" class:selected={selected}>
-  {song.title} - {song.artists} - {song.played_at}
-  <AudioButton src="{song.preview_url}" />
-  <button on:click={() => toggleSong(song)}>
-    {selected ? "Deselect" : "Select"}
-  </button>
-</div>
-
-<style>
-    .selected {
-        background-color: green;
-    }
-</style>
+<li class="song" id="{song.id}">
+  <a href="#" class="flex justify-between gap-x-6 p-5 hover:bg-gray-200 transition-colors duration-150 ease-in-out"
+     on:click={() => toggleSong(song)}
+     class:bg-gray-300={selected}
+  >
+    <div class="flex gap-x-4">
+      <img class="h-12 w-12 flex-none rounded-full bg-gray-50" src="{song.image_url}" alt="">
+      <div class="min-w-0 flex-auto">
+        <p class="text-sm font-semibold leading-6 text-gray-900">{song.title}</p>
+        <p class="mt-1 truncate text-xs leading-5 text-gray-500">{song.artists}</p>
+      </div>
+    </div>
+    <div class="hidden sm:flex sm:flex-col sm:items-end">
+      <AudioButton src="{song.preview_url}" />
+      <p class="text-sm leading-6 text-gray-900">{playedAtString}</p>
+    </div>
+  </a>
+</li>
