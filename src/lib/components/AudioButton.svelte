@@ -1,9 +1,19 @@
+<script context="module">
+  const players = new Set()
+
+  export function stopAll() {
+    players.forEach(p => p.pause())
+  }
+</script>
+
 <script lang="ts">
   import play from '$lib/assets/icons/play.svg';
   import pause from '$lib/assets/icons/pause.svg';
+  import {onMount} from "svelte";
 
   export let src;
 
+  let player;
   let time = 0;
   let progress = 0;
   let duration = 0;
@@ -11,24 +21,32 @@
 
   $: progress = time / duration * 100;
 
-  //if paused = false stop all other audio elements
+  onMount(() => {
+    players.add(player);
+  });
+
+  function playPause() {
+    stopAll();
+    paused = !paused;
+  }
 </script>
 
 <audio
   {src}
+  bind:this={player}
   bind:currentTime={time}
   bind:duration
   bind:paused
   on:ended={() => {
-			time = 0;
-		}}
+    time = 0;
+  }}
 ></audio>
 
 <button
   type="button"
-  class="play text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-full text-sm p-2.5 text-center inline-flex items-center mr-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+  class="play text-black bg-green-500 hover:bg-green-600 font-medium rounded-full text-sm px-5 py-2.5 text-center z-50"
   aria-label={paused ? 'play' : 'pause'}
-  on:click={() => paused = !paused}
+  on:click={playPause}
 >
   {#if paused}
     <img src="{play}" alt="play">
@@ -38,9 +56,3 @@
     <span class="sr-only">Pause</span>
   {/if}
 </button>
-
-<style>
-  .audio-button {
-    display: inline-block;
-  }
-</style>

@@ -1,12 +1,13 @@
 <script lang="ts">
   import { generatePlaylist, getLastPlayedSongs, } from "$lib/spotify";
   import { goto } from "$app/navigation";
-  import { deselectSong, toggleAllSongs } from "$lib/song";
+  import { toggleAllSongs } from "$lib/song";
   import { selectedSongs } from "$lib/stores";
   import Swal from 'sweetalert2';
   import Cookies from 'js-cookie';
   import Song from "$lib/components/Song.svelte";
   import type { Song as SongInterface } from "../../types/Song";
+  import Button from "$lib/components/Button.svelte";
 
   const accessToken = Cookies.get('access_token');
 
@@ -18,7 +19,6 @@
   let selected: SongInterface[] = [];
   let before = new Date().getTime();
   let playlistName = 'Last Played ' + new Date().toLocaleDateString('de-CH') + ' ' + new Date().toLocaleTimeString('de-CH');
-  let playlistDescription = '';
 
   selectedSongs.set(JSON.parse(Cookies.get('selected_songs') || '[]'));
   selectedSongs.subscribe((songs) => {
@@ -32,6 +32,7 @@
     } else {
       const { value: values } = await Swal.fire({
         template: '#swal-createPlaylist-template',
+        confirmButtonColor: '#1DB954',
         preConfirm: () => {
           return [
             document.getElementById('swal-playlistName').value,
@@ -84,29 +85,42 @@
 </script>
 
 <div>
-  <button on:click={() => goto('/logout')}>Logout</button>
+  <div class="w-full flex justify-between my-3">
   <h1 class="mb-4 text-4xl font-extrabold leading-none tracking-tight text-gray-900 md:text-5xl lg:text-6xl">
     Last Played
   </h1>
+  <button
+          type="button"
+          class="text-black bg-gray-400 hover:bg-gray-500 font-medium rounded-full text-sm px-5 py-2.5 text-center h-1/5"
+          on:click={() => goto('/logout')}
+  >
+    Logout
+  </button>
+</div>
+  <div class="w-full flex justify-between my-3">
+    <Button on:click={toggleAllSongs} text="Select All"/>
+    <Button on:click={playlist} text="Create Playlist"/>
+  </div>
   <div>
-    {#await getLastPlayedSongs(accessToken, limit, null, before)}
-      <p>loading...</p>
-    {:then lastPlayedSongs}
-      {lastPlayedSongs.items.length} - <button on:click={toggleAllSongs}>Select All</button>
-      <ul class="divide-y divide-gray-100">
+    <ul class="divide-y divide-gray-100">
+      {#await getLastPlayedSongs(accessToken, limit, null, before)}
+        <li class="text-center font-bold text-lg">
+          <p>loading...</p>
+        </li>
+      {:then lastPlayedSongs}
         {#each lastPlayedSongs.items as lastPlayedSong}
           <Song song={convertToSong(lastPlayedSong)} />
         {/each}
-      </ul>
-    {:catch error}
-      <p>{error.message}</p>
-    {/await}
+      {:catch error}
+        <li class="bg-red-500 text-center font-bold text-lg">
+          <p>{error.message}</p>
+        </li>
+      {/await}
+    </ul>
   </div>
-  <div>
-    <h2>Create Playlist</h2>
-    <input bind:value={playlistName} />
-    <input bind:value={playlistDescription} />
-    <button on:click={playlist} >Save</button>
+  <div class="w-full flex justify-between my-3">
+    <Button on:click={toggleAllSongs} text="Select All"/>
+    <Button on:click={playlist} text="Create Playlist"/>
   </div>
 </div>
 
@@ -117,21 +131,11 @@
   <swal-html>
     <input style="width: 20rem" id="swal-playlistName" class="swal2-input" placeholder="Name">
     <textarea style="width: 20rem" id="swal-playlistDescription" class="swal2-textarea" placeholder="Description"></textarea>
-    <h2>Selected</h2>
-    {#if selected.length === 0}
-      <p>No songs selected</p>
-    {:else}
-      <div style="text-align: left">
-        {#each $selectedSongs as song}
-          <span>{song.title}</span><br>
-        {/each}
-      </div>
-    {/if}
   </swal-html>
-  <swal-button type="confirm">
-    Confirm
-  </swal-button>
   <swal-button type="cancel">
     Cancel
+  </swal-button>
+  <swal-button type="confirm">
+    Confirm
   </swal-button>
 </template>
