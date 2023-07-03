@@ -77,6 +77,10 @@
 		}
 	}
 
+	function refresh() {
+		before = new Date().getTime();
+	}
+
 	function convertToSong(lastPlayedSong): SongInterface {
 		return {
 			id: lastPlayedSong.track.uri,
@@ -106,12 +110,13 @@
 	</div>
 	<div class="w-full flex justify-between my-3">
 		<Button on:click={toggleAllSongs} text="Select All" />
+		<Button on:click={refresh} text="Refresh" />
 		<Button on:click={playlist} text="Create Playlist" />
 	</div>
 	<div>
 		<ul class="divide-y divide-gray-100">
 			{#await getLastPlayedSongs(accessToken, limit, null, before)}
-				<li class="text-center font-bold text-lg">
+				<li class="text-center font-bold text-lg rounded">
 					<p>loading...</p>
 				</li>
 			{:then lastPlayedSongs}
@@ -119,7 +124,7 @@
 					<Song song={convertToSong(lastPlayedSong)} />
 				{/each}
 			{:catch error}
-				<li class="bg-red-500 text-center font-bold text-lg">
+				<li class="bg-red-500 text-center font-bold text-lg rounded">
 					<p>{error.message}</p>
 				</li>
 			{/await}
