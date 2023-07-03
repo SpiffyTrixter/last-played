@@ -4,7 +4,7 @@
 
 <button
 	type="button"
-	class="text-black bg-green-500 hover:bg-green-600 font-medium rounded-full text-sm px-5 py-2.5 text-center mr-2 mb-2"
+	class="text-black bg-spotify hover:bg-spotify-hover font-medium rounded-full text-sm px-5 py-2.5 text-center mr-2 mb-2"
 	on:click
 >
 	{text}

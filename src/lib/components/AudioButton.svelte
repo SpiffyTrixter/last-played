@@ -41,7 +41,7 @@
 
 <button
 	type="button"
-	class="play text-black bg-green-500 hover:bg-green-600 font-medium rounded-full text-sm px-5 py-2.5 text-center z-50"
+	class="play text-black bg-spotify hover:bg-spotify-hover font-medium rounded-full text-sm px-5 py-2.5 text-center z-50"
 	aria-label={paused ? 'play' : 'pause'}
 	on:click={playPause}
 >
